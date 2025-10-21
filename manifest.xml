@@ -1,4 +1,4 @@
-notification<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>aa619b3e-fe1e-4ab5-84a5-0b325df0cea6</Id>
   <Version>1.0.0.0</Version>
@@ -6,8 +6,8 @@ notification<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Ericsson"/>
   <Description DefaultValue="Ericsson addin to get started."/>
-  <IconUrl DefaultValue="https://quoting-tool-2.vercel.app/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://quoting-tool-2.vercel.app/assets/icon-64.png"/>
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
   <SupportUrl DefaultValue="https://www.contoso.com/help"/>
   <AppDomains>
     <AppDomain>https://www.contoso.com</AppDomain>
@@ -16,7 +16,7 @@ notification<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <Host Name="Workbook"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://quoting-tool-2.vercel.app/taskpane.html"/>
+    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
@@ -62,14 +62,14 @@ notification<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://quoting-tool-2.vercel.app/assets/icon-16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://quoting-tool-2.vercel.app/assets/icon-32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://quoting-tool-2.vercel.app/assets/icon-80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
-        <bt:Url id="Commands.Url" DefaultValue="https://quoting-tool-2.vercel.app/commands.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://quoting-tool-2.vercel.app/taskpane.html"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with Ericsson add-in!"/>
