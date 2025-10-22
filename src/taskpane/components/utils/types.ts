@@ -1,4 +1,3 @@
-
 export type SkuRow = {
   [key: string]: any;
   mainCategory: string;
@@ -11,7 +10,7 @@ export type EnrichedSkuRow = SkuRow & {
   categoryType: string;
   routerModel: string; 
   planType: string; 
-  termInYears: number | null; 
+  termInYears: number | null;
 };
 
 // Optional interfaces (not used in current implementation but provided for future use)

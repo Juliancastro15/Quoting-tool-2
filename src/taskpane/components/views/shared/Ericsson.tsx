@@ -20,11 +20,12 @@ import {
     Tabs, // Import Tabs and Tab components
     Tab,
     useMediaQuery,
-    useTheme
+    useTheme,
+    Drawer // Import Drawer for side panel
 } from "@mui/material";
 import { Search, Refresh, Clear } from "@mui/icons-material";
 import { SelectChangeEvent } from "@mui/material/Select";
-import { loadExcelData } from "../../utils/excelUtils";
+import { loadExcelData, getSheetNames } from "../../utils/excelUtils";
 import { useStyles } from "../../styles/styles";
 import { TEXT } from "../../utils/textResources";
 import { SkuRow, EnrichedSkuRow } from "../../utils/types";
@@ -36,21 +37,17 @@ interface Notification {
     severity: "success" | "info" | "warning" | "error";
 }
 
-// --- Helper functions remain the same ---
-// (getProductType, getCategoryType, accessoryModelMapping, etc.)
 const getProductType = (row: SkuRow): "Hardware and Licenses" | "Accessories" | "Renewal" => {
     const description = (row["Short Description"] || "").toLowerCase().trim();
     const productFamily = (row.productFamily || "").toLowerCase().trim();
     const partNumber = (row.PartNumber || "").toLowerCase().trim();
 
-    // Prioritize Accessories check first to avoid misclassification
     if (
         partNumber.match(/(ba-mc400-1200m-b|bf-mc400-1200m-b|bf-mc400-5gb|ba-mc400-5gb|mb-mc400-5gb|bf-mc20-bt|170900-015|170900-016|170900-017|170900-020|170900-001|170900-005|170900-009|170900-014|ma-mc400-1200m-b|ma-rx20-mc|mc20-srl|mc20-eth|mc20-gpo|rx20-mc|mb-rx30-poe|mb-rx30-mc|sec-0001-nciwf|sec-0003-nciwf|sec-0005-nciwf|170761-001|170765-000|170801-000|170836-000|170907-000|170923-000|170732-000|170732-001|170732-002|170732-003|170732-004|170877-000|170862-000|170863-000|170716-001|170717-000|170751-000|170869-000|170870-000|170924-000|170663-000|170663-001|170725-000|170585-001|170676-000|170712-000|170758-000|170623-001|170871-000|170665-000|170919-000|170864-000|170873-000|170671-001|170858-000|170872-000|170876-001|170886-000|170887-000|170888-000|170913-000|170750-001|170904-001|170718-000|170812-000|170848-000|170921-000)/i)
     ) {
         return "Accessories";
     }
 
-    // Renewal check after Accessories
     if (
         description.includes("renewal") ||
         partNumber.includes("-r") ||
@@ -334,7 +331,13 @@ const Ericsson: React.FC = () => {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
 
-    const [activeSheet, setActiveSheet] = useState<string>('North America');
+    const [sheetNames, setSheetNames] = useState<string[]>([]);
+    const [activeSheet, setActiveSheet] = useState<string>('');
+
+    // New state for side panel (Drawer) and all-sheets data
+    const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+    const [allSheetsData, setAllSheetsData] = useState<{ [sheetName: string]: EnrichedSkuRow[] }>({});
+    const [filteredAllData, setFilteredAllData] = useState<EnrichedSkuRow[]>([]);
 
     const handleCloseNotification = () => setNotification((prev) => ({ ...prev, open: false }));
     const showNotification = (message: string, severity: Notification["severity"]) => setNotification({ open: true, message, severity });
@@ -354,6 +357,16 @@ const Ericsson: React.FC = () => {
         if (showNotif) showNotification("All filters cleared", "info");
     };
 
+    // Load sheet names dynamically on mount
+    useEffect(() => {
+      getSheetNames().then((names) => {
+        setSheetNames(names);
+        if (names.length > 0) {
+          setActiveSheet(names[0]); // Set first sheet as active by default
+        }
+      });
+    }, []);
+
     const handleSheetChange = (_event: React.SyntheticEvent, newValue: string) => {
         setActiveSheet(newValue);
         resetAllSelections();
@@ -371,27 +384,78 @@ const Ericsson: React.FC = () => {
         }).catch(error => console.error(error));
     };
 
+    // Load data for the active sheet
     useEffect(() => {
-        loadExcelData(activeSheet)
-            .then(({ workbookData }) => {
-                const enriched = workbookData.map(
-                    (row): EnrichedSkuRow => ({
-                        ...row,
-                        productType: getProductType(row),
-                        categoryType: getCategoryType(row),
-                        routerModel: getRouterModel(row),
-                        planType: getPlanType(row),
-                        termInYears: getTermInYears(row),
-                    })
-                );
-                setEnrichedData(enriched);
-                showNotification(`Data from ${activeSheet} loaded successfully`, "success");
-            })
-            .catch((err) => {
-                console.error(`❌ Error loading Excel data from ${activeSheet}:`, err);
-                showNotification(`Failed to load data from ${activeSheet}. Please check the sheet.`, "error");
-            });
+        if (activeSheet) {
+          loadExcelData(activeSheet)
+              .then(({ workbookData }) => {
+                  const enriched = workbookData.map(
+                      (row): EnrichedSkuRow => ({
+                          ...row,
+                          productType: getProductType(row),
+                          categoryType: getCategoryType(row),
+                          routerModel: getRouterModel(row),
+                          planType: getPlanType(row),
+                          termInYears: getTermInYears(row),
+                      })
+                  );
+                  setEnrichedData(enriched);
+                  showNotification(`Data from ${activeSheet} loaded successfully`, "success");
+              })
+              .catch((err) => {
+                  console.error(`❌ Error loading Excel data from ${activeSheet}:`, err);
+                  showNotification(`Failed to load data from ${activeSheet}. Please check the sheet.`, "error");
+              });
+        }
     }, [activeSheet]);
+
+    // New: Load data from all sheets for the side panel
+    useEffect(() => {
+      if (sheetNames.length > 0) {
+        const loadAllData = async () => {
+          const allData: { [sheetName: string]: EnrichedSkuRow[] } = {};
+          for (const name of sheetNames) {
+            try {
+              const { workbookData } = await loadExcelData(name);
+              const enriched = workbookData.map(
+                (row): EnrichedSkuRow => ({
+                    ...row,
+                    productType: getProductType(row),
+                    categoryType: getCategoryType(row),
+                    routerModel: getRouterModel(row),
+                    planType: getPlanType(row),
+                    termInYears: getTermInYears(row),
+                    sheetName: name // Add sheet name to each row for filtering
+                })
+              );
+              allData[name] = enriched;
+            } catch (err) {
+              console.error(`Error loading data from sheet ${name}:`, err);
+            }
+          }
+          setAllSheetsData(allData);
+          // Flatten all data for initial filtered view (e.g., all routers)
+          const flattened = Object.values(allData).flat();
+          const routerData = flattened.filter(row => row.categoryType === "Routers");
+          setFilteredAllData(routerData); // Default to showing all routers from all sheets
+          showNotification("Data is loaded from all sheets", "success");
+        };
+        loadAllData();
+      }
+    }, [sheetNames]);
+
+    // Function to filter all data (e.g., by model or category)
+    // const filterAllData = (filterCriteria: { category?: string; model?: string }) => {
+    //   const flattened = Object.values(allSheetsData).flat();
+    //   let filtered = flattened;
+    //   if (filterCriteria.category) {
+    //     filtered = filtered.filter(row => row.categoryType === filterCriteria.category);
+    //   }
+    //   if (filterCriteria.model) {
+    //     filtered = filtered.filter(row => row.routerModel === filterCriteria.model);
+    //   }
+    //   setFilteredAllData(filtered);
+    // };
 
     const handleProductTypeSelect = (event: SelectChangeEvent<string>) => {
         const type = event.target.value as string;
@@ -620,10 +684,7 @@ const Ericsson: React.FC = () => {
                     <CardContent sx={{ paddingBottom: "0px !important", padding: "0px !important" }}>
                         <Typography variant="h6" sx={{ color: "#004328", textAlign: "center", fontWeight: "bold" }}>{selectedModel || sku.routerModel}</Typography>
                         <Typography sx={{ mt: 1.5 }}><strong>Part Number :</strong> {sku["PartNumber"]}</Typography>
-                        <Typography><strong>Category :</strong> {sku.categoryType}</Typography>
-                        <Typography><strong>Retail Price :</strong>
-                         <Box component="span" sx={{ backgroundColor: '#ffe000', fontWeight: 'bold', p: "2px 6px 2px 6px", }}> ${sku["MSRP / \nRetail Price"]} </Box>
-                          </Typography>
+                        <Typography><strong>Retail Price :</strong> ${sku["MSRP / \nRetail Price"]}</Typography>
                         <Typography><strong>Short Description :</strong> {sku["Short Description"]}</Typography>
                         <Box sx={{ textAlign: "center", mt: 2 }}>
                             <Button variant="contained" sx={{ bgcolor: "#004328", "&:hover": { bgcolor: "#003020" }, color: "#fff" }} onClick={() => { console.log("Selected SKU Data:", sku); setActiveSku(sku); setIsModalOpen(true); showNotification(`Viewing details for ${selectedModel || sku.routerModel}`, "info"); }}>View More</Button>
@@ -656,10 +717,9 @@ const Ericsson: React.FC = () => {
                         },
                     }}
                 >
-                    <Tab label="North America" value="North America" />
-                    <Tab label="LATAM" value="LATAM" />
-                    <Tab label="EMEA" value="EMEA" />
-                    <Tab label="APAC" value="APAC" />
+                    {sheetNames.map((name) => (
+                      <Tab key={name} label={name} value={name} />
+                    ))}
                 </Tabs>
             </Box>
 
@@ -744,9 +804,7 @@ const Ericsson: React.FC = () => {
                         {activeSku["MSRP / \nRetail Price"] && (
                             <Typography sx={{ color: "#374151" }}>
                                 <strong>Retail Price :</strong>{' '}
-                                <Box component="span" sx={{ backgroundColor: '#ffe000', fontWeight: 'bold', p: "2px 6px 2px 6px", }}>
                                     ${activeSku["MSRP / \nRetail Price"]}
-                                </Box>
                             </Typography>
                         )}
 
@@ -781,7 +839,7 @@ const Ericsson: React.FC = () => {
                 </Dialog>
             )}
 
-            <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+            <Snackbar open={notification.open} autoHideDuration={3000} onClose={handleCloseNotification} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
                 <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: "100%" }}>{notification.message}</Alert>
             </Snackbar>
         </Box>
