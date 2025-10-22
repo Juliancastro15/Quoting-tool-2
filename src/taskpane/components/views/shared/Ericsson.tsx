@@ -818,6 +818,7 @@ const Ericsson: React.FC = () => {
                             <Typography sx={{ color: "#374151" }}>
                                 <strong>Plan Type :</strong> {activeSku["planType"]}
                             </Typography>
+                            
                         )}
 
                         {activeSku.Warranty && (
