@@ -17,11 +17,11 @@ import {
     IconButton,
     Snackbar,
     Alert,
-    Tabs, // Import Tabs and Tab components
+    Tabs,
     Tab,
     useMediaQuery,
     useTheme,
-    Drawer // Import Drawer for side panel
+    Drawer
 } from "@mui/material";
 import { Search, Refresh, Clear } from "@mui/icons-material";
 import { SelectChangeEvent } from "@mui/material/Select";
@@ -42,6 +42,11 @@ const getProductType = (row: SkuRow): "Hardware and Licenses" | "Accessories" | 
     const productFamily = (row.productFamily || "").toLowerCase().trim();
     const partNumber = (row.PartNumber || "").toLowerCase().trim();
 
+    // Explicitly classify R980 SKUs as Hardware and Licenses
+    if (partNumber.match(/(mb01-r980-5gd-a|mb03-r980-5gd-a|mb05-r980-5gd-a|mba1-r980-5gd-a|mba3-r980-5gd-a|mba5-r980-5gd-a|tc03-r980-5gd-a|tc05-r980-5gd-a|tca3-r980-5gd-a|tca5-r980-5gd-a|max1-0980-5gd-xe|max3-0980-5gd-xe|max5-0980-5gd-xe)/i)) {
+        return "Hardware and Licenses";
+    }
+
     if (
         partNumber.match(/(ba-mc400-1200m-b|bf-mc400-1200m-b|bf-mc400-5gb|ba-mc400-5gb|mb-mc400-5gb|bf-mc20-bt|170900-015|170900-016|170900-017|170900-020|170900-001|170900-005|170900-009|170900-014|ma-mc400-1200m-b|ma-rx20-mc|mc20-srl|mc20-eth|mc20-gpo|rx20-mc|mb-rx30-poe|mb-rx30-mc|sec-0001-nciwf|sec-0003-nciwf|sec-0005-nciwf|170761-001|170765-000|170801-000|170836-000|170907-000|170923-000|170732-000|170732-001|170732-002|170732-003|170732-004|170877-000|170862-000|170863-000|170716-001|170717-000|170751-000|170869-000|170870-000|170924-000|170663-000|170663-001|170725-000|170585-001|170676-000|170712-000|170758-000|170623-001|170871-000|170665-000|170919-000|170864-000|170873-000|170671-001|170858-000|170872-000|170876-001|170886-000|170887-000|170888-000|170913-000|170750-001|170904-001|170718-000|170812-000|170848-000|170921-000)/i)
     ) {
@@ -49,29 +54,10 @@ const getProductType = (row: SkuRow): "Hardware and Licenses" | "Accessories" | 
     }
 
     if (
-        description.includes("renewal") ||
-        partNumber.includes("-r") ||
-        productFamily.includes("renewal")
+        description.includes("renewal") &&
+        !partNumber.match(/(mb01-r980-5gd-a|mb03-r980-5gd-a|mb05-r980-5gd-a|mba1-r980-5gd-a|mba3-r980-5gd-a|mba5-r980-5gd-a|tc03-r980-5gd-a|tc05-r980-5gd-a|tca3-r980-5gd-a|tca5-r980-5gd-a|max1-0980-5gd-xe|max3-0980-5gd-xe|max5-0980-5gd-xe)/i)
     ) {
         return "Renewal";
-    }
-
-    // Hardware and Licenses as fallback
-    if (
-        description.includes("router") ||
-        productFamily.match(/(e3000|e400|e300|e102|e100|ibr1700|s700|s400|s450|r2100|r1900|r980|r920|r2105|r2155|rx20|rx30|w1850|w1855|w1885|w2005|w4005|l950)/i) ||
-        partNumber.match(/(bla1-e400-5ge-am-n|bla3-e400-5ge-am-n|bla5-e400-5ge-am-n)/i)
-    ) {
-        return "Hardware and Licenses";
-    }
-
-    if (
-        partNumber.includes("lw01") ||
-        description.includes("access point") ||
-        productFamily.includes("ap2600") ||
-        productFamily.includes("lan wi-fi ap")
-    ) {
-        return "Hardware and Licenses";
     }
 
     return "Hardware and Licenses";
@@ -134,7 +120,14 @@ const getCategoryType = (row: SkuRow): string => {
         return "Other";
     }
 
-    if ((description.includes("router") && !description.includes("modem only")) || (productFamily.match(/(e3000|e400|e300|e102|e100|ibr1700|s700|s400|s450|r2100|r1900|r980|r920|r2105|r2155)/i) && description.includes("router")) || partNumber.match(/(bla1-e400-5ge-am-n|bla3-e400-5ge-am-n|bla5-e400-5ge-am-n)/i)) return "Routers";
+    if (
+        (description.includes("router") && !description.includes("modem only")) ||
+        productFamily.match(/(e3000|e400|e300|e102|e100|ibr1700|s700|s400|s450|r2100|r1900|r980|r920|r2105|r2155)/i) ||
+        partNumber.match(/(bla1-e400-5ge|bl01-e400-5ge|bf01-30005gb|mb01-r980-5gd|mba1-r980-5gd|tc03-r980-5gd|tc05-r980-5gd|tca3-r980-5gd|tca5-r980-5gd|max1-0980-5gd|max3-0980-5gd|max5-0980-5gd)/i)
+    ) {
+        return "Routers";
+    }
+
     if (productFamily.includes("w1855") || productFamily.includes("w1850") || productFamily.includes("w2005") || productFamily.includes("w4005") || productFamily.includes("l950")) return "Adapters";
     if (description.includes("virtual") || productFamily.includes("netcloud exchange") || productFamily.includes("ncx") || productFamily.includes("virtual edge") || description.includes("service gateway")) return "Virtual Appliances";
     if (productFamily.includes("sw2400p") || description.includes("lan switch")) return "LAN Switches";
@@ -143,138 +136,51 @@ const getCategoryType = (row: SkuRow): string => {
     return "Other";
 };
 
-const accessoryModelMapping: { [partNumber: string]: { models: string[], displayName: string } } = {
-    // Modems
-    "170900-020": { models: ["IBR1700", "R1900", "E300/E3000"], displayName: "Captive Modem" },
-    "170900-017": { models: ["IBR1700", "R1900", "E300/E3000"], displayName: "Captive Modem" },
-    "170900-016": { models: ["IBR1700", "R1900", "E300/E3000"], displayName: "Captive Modem" },
-    "170900-005": { models: ["IBR1700", "R920", "R1900", "E300/E3000"], displayName: "Captive Modem" },
-    "170900-009": { models: ["IBR1700", "R1900", "E300/E3000", "AP22"], displayName: "Captive Modem" },
-    "170900-001": { models: ["IBR1700", "R1900", "E300/E3000"], displayName: "Captive Modem" },
-    "ma-mc400-1200m-b": { models: ["IBR1700", "RX30"], displayName: "Modem" },
-    "170900-015": { models: ["IBR1700", "R920", "R1900", "E300/E3000"], displayName: "Captive Modem" },
-    "170900-014": { models: ["R1900"], displayName: "Captive Modem" },
-    "mb-mc400-5gb": { models: ["RX20", "RX30", "E300/E3000"], displayName: "Modem" },
-    "ba-mc400-1200m-b": { models: ["AER2200"], displayName: "Modem" },
-    "ba-mc400-5gb": { models: ["AER2200"], displayName: "Modem" },
-    "bf-mc400-1200m-b": { models: ["E300/E3000"], displayName: "Modem" },
-    "bf-mc400-5gb": { models: ["E300/E3000"], displayName: "Modem" },
-
-    // Expansion Modules
-    "mc20-srl": { models: ["S400/450"], displayName: "MC20 Serial" },
-    "mc20-eth": { models: ["S400/450"], displayName: "MC20 Ethernet" },
-    "mc20-gpo": { models: ["S400/450"], displayName: "MC20 GPO" },
-    "ma-rx20-mc": { models: ["R920"], displayName: "RX20 MC" },
-    "mb-rx30-poe": { models: ["R1900"], displayName: "RX30 PoE" },
-    "mb-rx30-mc": { models: ["R1900"], displayName: "RX30 MC" },
-    "bf-mc20-bt": { models: ["E300/E3000"], displayName: "MC20 Bluetooth" },
-
-    // Security
-    "sec-0001-nciwf": { models: ["IBR1700", "R1900", "E300/E3000"], displayName: "Security 1" },
-    "sec-0003-nciwf": { models: ["IBR1700", "R1900", "E300/E3000"], displayName: "Security 3" },
-    "sec-0005-nciwf": { models: ["IBR1700", "R1900", "E300/E3000"], displayName: "Security 5" },
-
-    // Antenna
-    "170761-001": { models: ["W1850"], displayName: "Antenna 761" },
-    "170907-000": { models: ["W1855"], displayName: "Antenna 907" },
-    "170765-000": { models: ["L950"], displayName: "Antenna 765" },
-    "170801-000": { models: ["S700", "S750", "R920", "R980", "E100/110", "E300/E3000", "MC-400 5G", "MC-1200M-B LTE"], displayName: "Antenna 801" },
-    "170836-000": { models: ["S700", "R920", "R980"], displayName: "Antenna 836" },
-    "170923-000": { models: ["E400"], displayName: "Antenna 923" },
-
-    // PoE Injector
-    "170877-000": { models: ["W1850", "W1855"], displayName: "PoE Injector 877" },
-    "170732-000": { models: ["L950", "AP22"], displayName: "PoE Injector 732" },
-    "170732-001": { models: ["L950", "AP22"], displayName: "PoE Injector 732-1" },
-    "170732-002": { models: ["L950", "AP22"], displayName: "PoE Injector 732-2" },
-    "170732-003": { models: ["L950", "AP22"], displayName: "PoE Injector 732-3" },
-    "170732-004": { models: ["L950", "AP22"], displayName: "PoE Injector 732-4" },
-
-    // Power Supply
-    "170862-000": { models: ["W1850"], displayName: "Power Supply 862" },
-    "170863-000": { models: ["W1850"], displayName: "Power Supply 863" },
-    "170716-001": { models: ["IBR1700", "S700", "S750", "R920", "R980", "E100/110", "E300"], displayName: "Power Supply 716" },
-    "170717-000": { models: ["IBR1700", "S700", "S750", "R920", "E100/110", "E300"], displayName: "Power Supply 717" },
-    "170751-000": { models: ["E3000"], displayName: "Power Supply 751" },
-    "170869-000": { models: ["IBR1700", "R1900"], displayName: "Power Supply 869" },
-    "170870-000": { models: ["RX30"], displayName: "Power Supply 870" },
-    "170924-000": { models: ["E400"], displayName: "Power Supply 924" },
-
-    // Cables & Adapters
-    "170663-000": { models: ["W1850"], displayName: "Cable" },
-    "170663-001": { models: ["W1850"], displayName: "Cable" },
-    "170725-000": { models: ["W1850"], displayName: "Cable" },
-    "170585-001": { models: ["IBR1700"], displayName: "Cable" },
-    "170676-000": { models: ["IBR1700"], displayName: "Cable" },
-    "170712-000": { models: ["IBR1700"], displayName: "Cable" },
-    "170758-000": { models: ["IBR1700", "R1900"], displayName: "Cable" },
-    "170623-001": { models: ["IBR1700", "R1900"], displayName: "Cable" },
-    "170871-000": { models: ["IBR1700", "R1900"], displayName: "Rail Safe GPIO Cable" },
-    "170665-000": { models: ["IBR1700", "R1900", "E300"], displayName: "Cable" },
-    "170919-000": { models: ["S400/450"], displayName: "Cable" },
-    "170864-000": { models: ["S700", "R1900"], displayName: "Cable" },
-    "170873-000": { models: ["S700", "R920"], displayName: "Cable" },
-    "170671-001": { models: ["RX30", "E3000"], displayName: "Cable" },
-    "170858-000": { models: ["RX30"], displayName: "Adapter" },
-    "170872-000": { models: ["RX30"], displayName: "Rail Safe GPIO Cable" },
-
-    // Mounting Brackets
-    "170876-001": { models: ["W1850"], displayName: "Mounting Bracket 876" },
-    "170886-000": { models: ["W1855"], displayName: "Mounting Bracket 886" },
-    "170887-000": { models: ["W1855"], displayName: "Mounting Bracket 887" },
-    "170888-000": { models: ["W1855"], displayName: "Mounting Bracket 888" },
-    "170913-000": { models: ["W1855"], displayName: "Mounting Bracket 913" },
-    "170750-001": { models: ["IBR1700"], displayName: "Mounting Bracket 750" },
-    "170904-001": { models: ["R920"], displayName: "Mounting Bracket 904" },
-    "170718-000": { models: ["R1900"], displayName: "Mounting Bracket 718" },
-    "170812-000": { models: ["E3000"], displayName: "Mounting Bracket 812" },
-
-    // Battery
-    "170848-000": { models: ["E100/110"], displayName: "Battery 848" },
-    "170921-000": { models: ["E100/110", "E400"], displayName: "Battery 921" }
-};
-
 const getRouterModel = (row: SkuRow): string => {
     const description = (row["Short Description"] || "").toLowerCase().trim();
     const productFamily = (row.productFamily || "").toLowerCase().trim();
     const partNumber = (row.PartNumber || "").toLowerCase().trim();
-    const categoryType = getCategoryType(row);
 
-    if (categoryType !== "Other" && accessoryModelMapping[partNumber]) {
-        return accessoryModelMapping[partNumber].displayName;
-    }
+    // Explicit mapping for R980 SKUs
+    const skuModelMapping: { [key: string]: string } = {
+        "mb01-r980-5gd-a": "R980",
+        "mb03-r980-5gd-a": "R980",
+        "mb05-r980-5gd-a": "R980",
+        "mba1-r980-5gd-a": "R980",
+        "mba3-r980-5gd-a": "R980",
+        "mba5-r980-5gd-a": "R980",
+        "tc03-r980-5gd-a": "R980",
+        "tc05-r980-5gd-a": "R980",
+        "tca3-r980-5gd-a": "R980",
+        "tca5-r980-5gd-a": "R980",
+        "max1-0980-5gd-xe": "R980",
+        "max3-0980-5gd-xe": "R980",
+        "max5-0980-5gd-xe": "R980",
+        "bf01-30005gb-gn": "E300",
+        "bf03-30005gb-gn": "E300",
+        "bf05-30005gb-gn": "E300",
+        "bl01-e400-5ge-am-n": "E400",
+        "bl03-e400-5ge-am-n": "E400",
+        "bl05-e400-5ge-am-n": "E400",
+        "bla1-e400-5ge-gl-m": "E400",
+        "bla3-e400-5ge-gl-m": "E400",
+        "bla5-e400-5ge-gl-m": "E400"
+    };
 
-    if (categoryType === "Cables & Adapters") {
-        if (description.includes("cable")) return "Cable";
-        if (description.includes("adapter")) return "Adapter";
-    }
+    if (skuModelMapping[partNumber]) return skuModelMapping[partNumber];
 
-    if (categoryType === "Modems") {
-        const modemModels: { [key: string]: string } = {
-            "ma-mc400-1200m-b": "Modem",
-            "ba-mc400-1200m-b": "Modem",
-            "ba-mc400-5gb": "Modem",
-            "mb-mc400-5gb": "Modem",
-            "bf-mc400-1200m-b": "Modem",
-            "bf-mc400-5gb": "Modem",
-            "170900-015": "Captive Modem",
-            "170900-016": "Captive Modem",
-            "170900-017": "Captive Modem",
-            "170900-020": "Captive Modem",
-            "170900-001": "Captive Modem",
-            "170900-005": "Captive Modem",
-            "170900-009": "Captive Modem",
-            "170900-014": "Captive Modem"
-        };
-        return modemModels[partNumber] || "Modem";
+    const partMatch = partNumber.match(/-(e3000|e400|e300|e102|e100|ibr1700|s700|s400|s450|r2100|r1900|r980|r920|r2105|r2155|rx20|rx30|w1850|w1855|w1885|w2005|w4005|l950|0980)-/i);
+    if (partMatch) {
+        const model = partMatch[1].toUpperCase();
+        return model === '0980' ? 'R980' : model;
     }
 
     const modelMapping: { [key: string]: string } = {
-        "e400": "E400", "bla1-e400-5ge-am-n": "E400", "bla3-e400-5ge-am-n": "E400", "bla5-e400-5ge-am-n": "E400",
+        "e400": "E400", "e300": "E300", "r980": "R980",
         "e3000": "E3000", "ap2600": "AP2600", "lan wi-fi ap": "AP2600",
-        "r920": "R920", "r980": "R980", "r1900": "R1900", "ibr1700": "IBR1700",
+        "r920": "R920", "r1900": "R1900", "ibr1700": "IBR1700",
         "s700": "S700", "s750": "S750", "s400": "S400", "s450": "S450",
-        "e300": "E300", "e100": "E100", "e102": "E100", "e110": "E110",
+        "e100": "E100", "e102": "E100", "e110": "E110",
         "r2100": "R2100", "r2105": "R2105", "r2155": "R2155",
         "w1850": "W1850", "w1855": "W1855", "w1885": "W1885", "w2000": "W2000", "w2005": "W2005", "w4005": "W4005", "l950": "L950",
         "rx20": "RX20", "rx30": "RX30", "sw2400p": "SW2400P",
@@ -295,15 +201,59 @@ const getRouterModel = (row: SkuRow): string => {
 
 const getPlanType = (row: SkuRow): string => {
     const description = (row["Short Description"] || "").toLowerCase().trim();
-    if (description.includes("advanced plan")) return "Advanced";
-    if (description.includes("essentials plan") && !description.includes("advanced plan")) return "Essentials";
+    const partNumber = (row.PartNumber || "").toUpperCase().trim();
+
+    // Explicit mapping for R980 SKUs
+    const skuPlanMapping: { [key: string]: string } = {
+        "MB01-R980-5GD-A": "Essentials",
+        "MB03-R980-5GD-A": "Essentials",
+        "MB05-R980-5GD-A": "Essentials",
+        "MBA1-R980-5GD-A": "Advanced",
+        "MBA3-R980-5GD-A": "Advanced",
+        "MBA5-R980-5GD-A": "Advanced",
+        "TC03-R980-5GD-A": "Essentials",
+        "TC05-R980-5GD-A": "Essentials",
+        "TCA3-R980-5GD-A": "Advanced",
+        "TCA5-R980-5GD-A": "Advanced",
+        "MAX1-0980-5GD-XE": "Essentials",
+        "MAX3-0980-5GD-XE": "Essentials",
+        "MAX5-0980-5GD-XE": "Essentials",
+        "BF01-30005GB-GN": "Essentials",
+        "BF03-30005GB-GN": "Essentials",
+        "BF05-30005GB-GN": "Essentials",
+        "BL01-E400-5GE-AM-N": "Essentials",
+        "BL03-E400-5GE-AM-N": "Essentials",
+        "BL05-E400-5GE-AM-N": "Essentials",
+        "BL01-E400-5GE-GL-M": "Essentials",
+        "BL03-E400-5GE-GL-M": "Essentials",
+        "BL05-E400-5GE-GL-M": "Essentials",
+        "BLA1-E400-5GE-GL-M": "Advanced",
+        "BLA3-E400-5GE-GL-M": "Advanced",
+        "BLA5-E400-5GE-GL-M": "Advanced"
+    };
+
+    if (skuPlanMapping[partNumber]) return skuPlanMapping[partNumber];
+
+    if (description.includes("advanced plan") || description.includes("premium") || description.includes("advanced")) return "Advanced";
+    if (description.includes("essentials plan") || description.includes("essentials")) return "Essentials";
+
+    const advancedPrefixes = ['BLA', 'MBA', 'TCA', 'BFA'];
+    const essentialsPrefixes = ['BL0', 'MB0', 'TC0', 'BF0', 'MAX'];
+
+    if (advancedPrefixes.some(prefix => partNumber.startsWith(prefix))) return "Advanced";
+    if (essentialsPrefixes.some(prefix => partNumber.startsWith(prefix))) return "Essentials";
+
     return "Standard";
 };
 
 const getTermInYears = (row: SkuRow): number | null => {
     const description = row["Short Description"] || "";
-    const match = description.match(/(\d+)-yr/);
-    if (match && match[1]) return parseInt(match[1], 10);
+    const partNumber = (row.PartNumber || "").toUpperCase();
+    const match = description.match(/(\d+)-yr/i) || partNumber.match(/(1|3|5)/);
+    if (match && match[1]) {
+        const term = parseInt(match[1], 10);
+        if ([1, 3, 5].includes(term)) return term;
+    }
     const warranty = parseInt(row["Warranty"]);
     if (!isNaN(warranty) && [1, 3, 5].includes(warranty)) return warranty;
     return null;
@@ -311,7 +261,6 @@ const getTermInYears = (row: SkuRow): number | null => {
 
 const Ericsson: React.FC = () => {
     const styles = useStyles();
-
     const [enrichedData, setEnrichedData] = useState<EnrichedSkuRow[]>([]);
     const [searchResults, setSearchResults] = useState<EnrichedSkuRow[]>([]);
     const [searchText, setSearchText] = useState("");
@@ -327,17 +276,16 @@ const Ericsson: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeSku, setActiveSku] = useState<EnrichedSkuRow | null>(null);
     const [notification, setNotification] = useState<Notification>({ open: false, message: "", severity: "info" });
-    const theme = useTheme();
-    const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-
-
     const [sheetNames, setSheetNames] = useState<string[]>([]);
     const [activeSheet, setActiveSheet] = useState<string>('');
-
-    // New state for side panel (Drawer) and all-sheets data
     const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
     const [allSheetsData, setAllSheetsData] = useState<{ [sheetName: string]: EnrichedSkuRow[] }>({});
     const [filteredAllData, setFilteredAllData] = useState<EnrichedSkuRow[]>([]);
+    const [sidePanelModel, setSidePanelModel] = useState<string | undefined>();
+    const [sidePanelPlanType, setSidePanelPlanType] = useState<string | undefined>();
+    const [sidePanelTerm, setSidePanelTerm] = useState<number | undefined>();
+    const theme = useTheme();
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
     const handleCloseNotification = () => setNotification((prev) => ({ ...prev, open: false }));
     const showNotification = (message: string, severity: Notification["severity"]) => setNotification({ open: true, message, severity });
@@ -354,29 +302,30 @@ const Ericsson: React.FC = () => {
         setAvailableTerms([]);
         setSearchResults([]);
         setSearchText("");
+        setSidePanelModel(undefined);
+        setSidePanelPlanType(undefined);
+        setSidePanelTerm(undefined);
         if (showNotif) showNotification("All filters cleared", "info");
     };
 
-    // Load sheet names dynamically on mount
     useEffect(() => {
-      getSheetNames().then((names) => {
-        setSheetNames(names);
-        if (names.length > 0) {
-          setActiveSheet(names[0]); // Set first sheet as active by default
-        }
-      });
+        getSheetNames().then((names) => {
+            console.log("Loaded sheet names:", names);
+            setSheetNames(names);
+            if (names.length > 0) {
+                setActiveSheet(names[0]);
+            }
+        });
     }, []);
 
     const handleSheetChange = (_event: React.SyntheticEvent, newValue: string) => {
         setActiveSheet(newValue);
         resetAllSelections();
-
         Excel.run(async (context) => {
             try {
                 const sheet = context.workbook.worksheets.getItem(newValue);
                 sheet.activate();
                 await context.sync();
-                // showNotification(`Switched to ${newValue} sheet`, "info");
             } catch (error) {
                 console.error("Error switching sheets:", error);
                 showNotification(`Could not find sheet named "${newValue}"`, "error");
@@ -384,78 +333,70 @@ const Ericsson: React.FC = () => {
         }).catch(error => console.error(error));
     };
 
-    // Load data for the active sheet
     useEffect(() => {
         if (activeSheet) {
-          loadExcelData(activeSheet)
-              .then(({ workbookData }) => {
-                  const enriched = workbookData.map(
-                      (row): EnrichedSkuRow => ({
-                          ...row,
-                          productType: getProductType(row),
-                          categoryType: getCategoryType(row),
-                          routerModel: getRouterModel(row),
-                          planType: getPlanType(row),
-                          termInYears: getTermInYears(row),
-                      })
-                  );
-                  setEnrichedData(enriched);
-                  showNotification(`Data from ${activeSheet} loaded successfully`, "success");
-              })
-              .catch((err) => {
-                  console.error(`❌ Error loading Excel data from ${activeSheet}:`, err);
-                  showNotification(`Failed to load data from ${activeSheet}. Please check the sheet.`, "error");
-              });
+            loadExcelData(activeSheet)
+                .then(({ workbookData }) => {
+                    const enriched = workbookData.map(
+                        (row): EnrichedSkuRow => {
+                            const enrichedRow = {
+                                ...row,
+                                productType: getProductType(row),
+                                categoryType: getCategoryType(row),
+                                routerModel: getRouterModel(row),
+                                planType: getPlanType(row),
+                                termInYears: getTermInYears(row),
+                                sheetName: activeSheet
+                            };
+                            console.log(`Enriched row from ${activeSheet}:`, enrichedRow);
+                            return enrichedRow;
+                        }
+                    );
+                    setEnrichedData(enriched);
+                    showNotification(`Data from ${activeSheet} loaded successfully`, "success");
+                })
+                .catch((err) => {
+                    console.error(`Error loading Excel data from ${activeSheet}:`, err);
+                    showNotification(`Failed to load data from ${activeSheet}. Please check the sheet.`, "error");
+                });
         }
     }, [activeSheet]);
 
-    // New: Load data from all sheets for the side panel
     useEffect(() => {
-      if (sheetNames.length > 0) {
-        const loadAllData = async () => {
-          const allData: { [sheetName: string]: EnrichedSkuRow[] } = {};
-          for (const name of sheetNames) {
-            try {
-              const { workbookData } = await loadExcelData(name);
-              const enriched = workbookData.map(
-                (row): EnrichedSkuRow => ({
-                    ...row,
-                    productType: getProductType(row),
-                    categoryType: getCategoryType(row),
-                    routerModel: getRouterModel(row),
-                    planType: getPlanType(row),
-                    termInYears: getTermInYears(row),
-                    sheetName: name // Add sheet name to each row for filtering
-                })
-              );
-              allData[name] = enriched;
-            } catch (err) {
-              console.error(`Error loading data from sheet ${name}:`, err);
-            }
-          }
-          setAllSheetsData(allData);
-          // Flatten all data for initial filtered view (e.g., all routers)
-          const flattened = Object.values(allData).flat();
-          const routerData = flattened.filter(row => row.categoryType === "Routers");
-          setFilteredAllData(routerData); // Default to showing all routers from all sheets
-          showNotification("Data is loaded from all sheets", "success");
-        };
-        loadAllData();
-      }
+        if (sheetNames.length > 0) {
+            const loadAllData = async () => {
+                const allData: { [sheetName: string]: EnrichedSkuRow[] } = {};
+                for (const name of sheetNames) {
+                    try {
+                        const { workbookData } = await loadExcelData(name);
+                        const enriched = workbookData.map(
+                            (row): EnrichedSkuRow => {
+                                const enrichedRow = {
+                                    ...row,
+                                    productType: getProductType(row),
+                                    categoryType: getCategoryType(row),
+                                    routerModel: getRouterModel(row),
+                                    planType: getPlanType(row),
+                                    termInYears: getTermInYears(row),
+                                    sheetName: name
+                                };
+                                console.log(`Enriched row from ${name}:`, enrichedRow);
+                                return enrichedRow;
+                            }
+                        );
+                        allData[name] = enriched;
+                    } catch (err) {
+                        console.error(`Error loading data from sheet ${name}:`, err);
+                    }
+                }
+                setAllSheetsData(allData);
+                const flattened = Object.values(allData).flat();
+                setFilteredAllData(flattened.filter(row => row.categoryType === "Routers"));
+                showNotification("Data loaded from all sheets", "success");
+            };
+            loadAllData();
+        }
     }, [sheetNames]);
-
-    // Function to filter all data (e.g., by model or category)
-    // const filterAllData = (filterCriteria: { category?: string; model?: string }) => {
-    //   const flattened = Object.values(allSheetsData).flat();
-    //   let filtered = flattened;
-    //   if (filterCriteria.category) {
-    //     filtered = filtered.filter(row => row.categoryType === filterCriteria.category);
-    //   }
-    //   if (filterCriteria.model) {
-    //     filtered = filtered.filter(row => row.routerModel === filterCriteria.model);
-    //   }
-    //   setFilteredAllData(filtered);
-    // };
 
     const handleProductTypeSelect = (event: SelectChangeEvent<string>) => {
         const type = event.target.value as string;
@@ -485,24 +426,7 @@ const Ericsson: React.FC = () => {
         setAvailableTerms([]);
 
         const nextOptions = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === type);
-        let uniqueModels: string[] = [];
-
-        if (selectedProductType === "Accessories") {
-            const modelMappings: { [key: string]: string[] } = {
-                "Modems": ["IBR1700", "R920", "RX20", "R1900", "RX30", "E300/E3000", "AP22", "AER2200"],
-                "Expansion Modules": ["S400/450", "R920", "R1900", "E300/E3000"],
-                "Security": ["IBR1700", "R1900", "E300/E3000"],
-                "Antenna": ["W1850", "W1855", "L950", "S700", "S750", "R920", "R980", "E100/110", "E300/E3000", "E400", "MC-400 5G", "MC-1200M-B LTE"],
-                "PoE Injector": ["W1850", "W1855", "L950", "AP22"],
-                "Power Supply": ["W1850", "IBR1700", "S700", "S750", "R920", "R980", "R1900", "RX30", "E100/110", "E3000", "E400", "E300"],
-                "Cables & Adapters": ["W1850", "IBR1700", "S400/450", "S700", "R920", "R1900", "RX30", "E3000", "E300"],
-                "Mounting Brackets": ["W1850", "W1855", "IBR1700", "R920", "R1900", "E3000"],
-                "Battery": ["E100/110", "E400"]
-            };
-            uniqueModels = modelMappings[type] || [];
-        } else {
-            uniqueModels = Array.from(new Set(nextOptions.map((r) => r.routerModel))).filter(Boolean).sort();
-        }
+        const uniqueModels = Array.from(new Set(nextOptions.map((r) => r.routerModel))).filter(Boolean).sort();
         setAvailableModels(uniqueModels);
 
         if (uniqueModels.length === 0) showNotification(`No models available for ${type}`, "warning");
@@ -515,16 +439,7 @@ const Ericsson: React.FC = () => {
         setSelectedPlanType(undefined);
         setSelectedTerm(undefined);
 
-        let initialResults: EnrichedSkuRow[] = [];
-        if (selectedProductType === "Accessories") {
-            initialResults = enrichedData.filter((r) => {
-                if (r.productType !== selectedProductType || r.categoryType !== selectedCategoryType) return false;
-                const mapping = accessoryModelMapping[r.PartNumber.toLowerCase().trim()];
-                return mapping && mapping.models.includes(model);
-            });
-        } else {
-            initialResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === model);
-        }
+        const initialResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === model);
         setSearchResults(initialResults);
 
         if (selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal") {
@@ -560,20 +475,30 @@ const Ericsson: React.FC = () => {
     const handleTermSelect = (event: SelectChangeEvent<string>) => {
         const term = parseInt(event.target.value as string, 10);
         setSelectedTerm(term);
-        let finalResults: EnrichedSkuRow[] = [];
-        if (selectedProductType === "Accessories") {
-            finalResults = enrichedData.filter((r) => {
-                if (r.productType !== selectedProductType || r.categoryType !== selectedCategoryType || r.termInYears !== term) return false;
-                const mapping = accessoryModelMapping[r.PartNumber.toLowerCase().trim()];
-                return mapping && mapping.models.includes(selectedModel!);
-            });
-        } else {
-            finalResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === selectedModel && r.termInYears === term && (selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal" ? r.planType === selectedPlanType : true));
-        }
+
+        const finalResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === selectedModel && r.termInYears === term && (selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal" ? r.planType === selectedPlanType : true));
         setSearchResults(finalResults);
 
         if (finalResults.length > 0) showNotification(`Found ${finalResults.length} results for ${term}-year term`, "success");
         else showNotification(`No results found for ${term}-year term`, "warning");
+    };
+
+    const handleSidePanelModelSelect = (event: SelectChangeEvent<string>) => {
+        const model = event.target.value as string;
+        setSidePanelModel(model);
+        setSidePanelPlanType(undefined);
+        setSidePanelTerm(undefined);
+
+        let filtered = Object.values(allSheetsData).flat().filter((r) => r.categoryType === "Routers" && r.routerModel === model);
+        setFilteredAllData(filtered);
+
+        const plansInResults = new Set(filtered.map((r) => r.planType));
+        const dynamicPlans: string[] = Array.from(plansInResults).filter((p) => p === "Essentials" || p === "Advanced");
+        setAvailablePlanTypes(dynamicPlans.sort());
+        setAvailableTerms([]);
+
+        if (filtered.length > 0) showNotification(`Found ${filtered.length} routers for model ${model} across all regions`, "success");
+        else showNotification(`No routers found for model ${model} across all regions`, "warning");
     };
 
     const handleClearCategory = () => {
@@ -598,23 +523,7 @@ const Ericsson: React.FC = () => {
         setAvailableTerms([]);
         setSearchResults([]);
         const nextOptions = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType);
-        let uniqueModels: string[] = [];
-        if (selectedProductType === "Accessories") {
-            const modelMappings: { [key: string]: string[] } = {
-                "Modems": ["IBR1700", "R920", "RX20", "R1900", "RX30", "E300/E3000", "AP22", "AER2200"],
-                "Expansion Modules": ["S400/450", "R920", "R1900", "E300/E3000"],
-                "Security": ["IBR1700", "R1900", "E300/E3000"],
-                "Antenna": ["W1850", "W1855", "L950", "S700", "S750", "R920", "R980", "E100/110", "E300/E3000", "E400", "MC-400 5G", "MC-1200M-B LTE"],
-                "PoE Injector": ["W1850", "W1855", "L950", "AP22"],
-                "Power Supply": ["W1850", "IBR1700", "S700", "S750", "R920", "R980", "R1900", "RX30", "E100/110", "E3000", "E400", "E300"],
-                "Cables & Adapters": ["W1850", "IBR1700", "S400/450", "S700", "R920", "R1900", "RX30", "E3000", "E300"],
-                "Mounting Brackets": ["W1850", "W1855", "IBR1700", "R920", "R1900", "E3000"],
-                "Battery": ["E100/110", "E400"]
-            };
-            uniqueModels = modelMappings[selectedCategoryType!] || [];
-        } else {
-            uniqueModels = Array.from(new Set(nextOptions.map((r) => r.routerModel))).filter(Boolean).sort();
-        }
+        const uniqueModels = Array.from(new Set(nextOptions.map((r) => r.routerModel))).filter(Boolean).sort();
         setAvailableModels(uniqueModels);
         showNotification("Model filter cleared", "info");
     };
@@ -623,22 +532,11 @@ const Ericsson: React.FC = () => {
         if (!selectedModel) return;
         setSelectedPlanType(undefined);
         setSelectedTerm(undefined);
-        let initialResults: EnrichedSkuRow[] = [];
-        if (selectedProductType === "Accessories") {
-            initialResults = enrichedData.filter((r) => {
-                if (r.productType !== selectedProductType || r.categoryType !== selectedCategoryType) return false;
-                const mapping = accessoryModelMapping[r.PartNumber.toLowerCase().trim()];
-                return mapping && mapping.models.includes(selectedModel!);
-            });
-        } else {
-            initialResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === selectedModel);
-        }
+        const initialResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === selectedModel);
         setSearchResults(initialResults);
-        if (selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal") {
-            const plansInResults = new Set(initialResults.map((r) => r.planType));
-            const dynamicPlans: string[] = Array.from(plansInResults).filter((p) => p === "Essentials" || p === "Advanced");
-            setAvailablePlanTypes(dynamicPlans.sort());
-        }
+        const plansInResults = new Set(initialResults.map((r) => r.planType));
+        const dynamicPlans: string[] = Array.from(plansInResults).filter((p) => p === "Essentials" || p === "Advanced");
+        setAvailablePlanTypes(dynamicPlans.sort());
         setAvailableTerms([]);
         showNotification("Plan filter cleared", "info");
     };
@@ -646,20 +544,22 @@ const Ericsson: React.FC = () => {
     const handleClearTerm = () => {
         if ((selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal" ? !selectedPlanType : !selectedModel) || !selectedCategoryType) return;
         setSelectedTerm(undefined);
-        let baseResults: EnrichedSkuRow[] = [];
-        if (selectedProductType === "Accessories") {
-            baseResults = enrichedData.filter((r) => {
-                if (r.productType !== selectedProductType || r.categoryType !== selectedCategoryType) return false;
-                const mapping = accessoryModelMapping[r.PartNumber.toLowerCase().trim()];
-                return mapping && mapping.models.includes(selectedModel!);
-            });
-        } else {
-            baseResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === selectedModel && (selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal" ? r.planType === selectedPlanType : true));
-        }
+        const baseResults = enrichedData.filter((r) => r.productType === selectedProductType && r.categoryType === selectedCategoryType && r.routerModel === selectedModel && (selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal" ? r.planType === selectedPlanType : true));
         setSearchResults(baseResults);
         const uniqueTerms = Array.from(new Set(baseResults.map((r) => r.termInYears).filter((t): t is number => t !== null))).sort((a, b) => a - b);
         setAvailableTerms(uniqueTerms);
         showNotification("Term filter cleared", "info");
+    };
+
+    const handleClearSidePanelFilters = () => {
+        setSidePanelModel(undefined);
+        setSidePanelPlanType(undefined);
+        setSidePanelTerm(undefined);
+        const filtered = Object.values(allSheetsData).flat().filter((r) => r.categoryType === "Routers");
+        setFilteredAllData(filtered);
+        setAvailablePlanTypes([]);
+        setAvailableTerms([]);
+        showNotification("Side panel filters cleared", "info");
     };
 
     const handleTextSearch = () => {
@@ -680,14 +580,17 @@ const Ericsson: React.FC = () => {
                 {TEXT.heading2}
             </Typography>
             {data.map((sku, idx) => (
-                <Card key={`${sku.PartNumber}-${idx}`} sx={{ bgcolor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "6px", padding: "20px", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", transition: "background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease", "&:hover": { bgcolor: "#f9fafb", transform: "scale(1.03)", boxShadow: "0 6px 12px rgba(0,0,0,0.05)", }, }}>
+                <Card key={`${sku.PartNumber}-${idx}`} sx={{ bgcolor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "6px", padding: "20px", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", transition: "background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease", "&:hover": { bgcolor: "#f9fafb", transform: "scale(1.03)", boxShadow: "0 6px 12px rgba(0,0,0,0.05)" } }}>
                     <CardContent sx={{ paddingBottom: "0px !important", padding: "0px !important" }}>
-                        <Typography variant="h6" sx={{ color: "#004328", textAlign: "center", fontWeight: "bold" }}>{selectedModel || sku.routerModel}</Typography>
-                        <Typography sx={{ mt: 1.5 }}><strong>Part Number :</strong> {sku["PartNumber"]}</Typography>
-                        <Typography><strong>Retail Price :</strong> ${sku["MSRP / \nRetail Price"]}</Typography>
-                        <Typography><strong>Short Description :</strong> {sku["Short Description"]}</Typography>
+                        <Typography variant="h6" sx={{ color: "#004328", textAlign: "center", fontWeight: "bold" }}>{sku.routerModel}</Typography>
+                        <Typography sx={{ mt: 1.5 }}><strong>Part Number:</strong> {sku.PartNumber}</Typography>
+                        <Typography><strong>Retail Price:</strong> ${sku["MSRP / \nRetail Price"]}</Typography>
+                        <Typography><strong>Short Description:</strong> {sku["Short Description"]}</Typography>
+                        <Typography><strong>Region:</strong> {sku.sheetName}</Typography>
+                        <Typography><strong>Plan Type:</strong> {sku.planType}</Typography>
+                        <Typography><strong>Term:</strong> {sku.termInYears} Year(s)</Typography>
                         <Box sx={{ textAlign: "center", mt: 2 }}>
-                            <Button variant="contained" sx={{ bgcolor: "#004328", "&:hover": { bgcolor: "#003020" }, color: "#fff" }} onClick={() => { console.log("Selected SKU Data:", sku); setActiveSku(sku); setIsModalOpen(true); showNotification(`Viewing details for ${selectedModel || sku.routerModel}`, "info"); }}>View More</Button>
+                            <Button variant="contained" sx={{ bgcolor: "#004328", "&:hover": { bgcolor: "#003020" }, color: "#fff" }} onClick={() => { setActiveSku(sku); setIsModalOpen(true); showNotification(`Viewing details for ${sku.routerModel}`, "info"); }}>View More</Button>
                         </Box>
                     </CardContent>
                 </Card>
@@ -718,12 +621,12 @@ const Ericsson: React.FC = () => {
                     }}
                 >
                     {sheetNames.map((name) => (
-                      <Tab key={name} label={name} value={name} />
+                        <Tab key={name} label={name} value={name} />
                     ))}
                 </Tabs>
             </Box>
 
-            <Box sx={{ mt: 4, p: 2.5, bgcolor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", }}>
+            <Box sx={{ mt: 4, p: 2.5, bgcolor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                     <Typography variant="subtitle1" sx={{ color: "#1f2937", fontWeight: 600 }}>{`Select & Search Product Family From ${activeSheet}`}</Typography>
                     <Box><IconButton onClick={() => resetAllSelections(true)} sx={{ p: 1 }}><Refresh /></IconButton></Box>
@@ -751,7 +654,7 @@ const Ericsson: React.FC = () => {
                                 {availableCategoryTypes.map((ct) => (<MenuItem key={ct} value={ct}>{ct}</MenuItem>))}
                             </Select>
                         </FormControl>
-                        {selectedCategoryType && (<IconButton onClick={handleClearCategory} title="Clear category filter" disabled={!selectedCategoryType}><Clear /></IconButton>)}
+                        {selectedCategoryType && (<IconButton onClick={handleClearCategory} title="Clear category filter"><Clear /></IconButton>)}
                     </Box>
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -761,7 +664,7 @@ const Ericsson: React.FC = () => {
                                 {availableModels.map((m) => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
                             </Select>
                         </FormControl>
-                        {selectedModel && (<IconButton onClick={handleClearModel} title="Clear model filter" disabled={!selectedModel}><Clear /></IconButton>)}
+                        {selectedModel && (<IconButton onClick={handleClearModel} title="Clear model filter"><Clear /></IconButton>)}
                     </Box>
 
                     {(selectedCategoryType === "Routers" || selectedCategoryType === "Adapters" || selectedProductType === "Renewal") && (
@@ -772,7 +675,7 @@ const Ericsson: React.FC = () => {
                                     {availablePlanTypes.map((pt) => (<MenuItem key={pt} value={pt}>{pt}</MenuItem>))}
                                 </Select>
                             </FormControl>
-                            {selectedPlanType && (<IconButton onClick={handleClearPlan} title="Clear plan and term filters"><Clear /></IconButton>)}
+                            {selectedPlanType && (<IconButton onClick={handleClearPlan} title="Clear plan filter"><Clear /></IconButton>)}
                         </Box>
                     )}
 
@@ -783,7 +686,7 @@ const Ericsson: React.FC = () => {
                                 {availableTerms.map((t) => (<MenuItem key={t} value={t}>{`${t} Year(s)`}</MenuItem>))}
                             </Select>
                         </FormControl>
-                        {selectedTerm && (<IconButton onClick={handleClearTerm} title="Clear term filter" disabled={!selectedTerm}><Clear /></IconButton>)}
+                        {selectedTerm && (<IconButton onClick={handleClearTerm} title="Clear term filter"><Clear /></IconButton>)}
                     </Box>
                 </Box>
             </Box>
@@ -793,46 +696,47 @@ const Ericsson: React.FC = () => {
             {isModalOpen && activeSku && (
                 <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)}>
                     <DialogTitle>
-                        <Typography variant="h6" textAlign={"center"}>
-                            <span style={{ fontWeight: 600 }}>Details for : </span>
-                            <span style={{ fontWeight: 700 }}>{selectedModel || activeSku.routerModel}</span>
+                        <Typography variant="h6" textAlign="center">
+                            <span style={{ fontWeight: 600 }}>Details for: </span>
+                            <span style={{ fontWeight: 700 }}>{activeSku.routerModel}</span>
                         </Typography>
                     </DialogTitle>
-                    <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, padding: "33px", paddingBottom: "0px" }}>
-
-                        {/* --- Price Field (Corrected Key) --- */}
+                    <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, padding: "33px", paddingBottom: "0" }}>
                         {activeSku["MSRP / \nRetail Price"] && (
                             <Typography sx={{ color: "#374151" }}>
-                                <strong>Retail Price :</strong>{' '}
-                                    ${activeSku["MSRP / \nRetail Price"]}
+                                <strong>Retail Price:</strong> ${activeSku["MSRP / \nRetail Price"]}
                             </Typography>
                         )}
-
-                        {activeSku["productType"] && (
+                        {activeSku.productType && (
                             <Typography sx={{ color: "#374151" }}>
-                                <strong>Product Type :</strong> {activeSku["productType"]}
+                                <strong>Product Type:</strong> {activeSku.productType}
                             </Typography>
                         )}
-
-                        {activeSku["planType"] && (
+                        {activeSku.categoryType && (
                             <Typography sx={{ color: "#374151" }}>
-                                <strong>Plan Type :</strong> {activeSku["planType"]}
+                                <strong>Category Type:</strong> {activeSku.categoryType}
                             </Typography>
-                            
                         )}
-
-                        {activeSku.Warranty && (
+                        {activeSku.planType && (
                             <Typography sx={{ color: "#374151" }}>
-                                <strong>Warranty :</strong> {activeSku.Warranty} Year(s)
+                                <strong>Plan Type:</strong> {activeSku.planType}
                             </Typography>
                         )}
-
+                        {activeSku.termInYears && (
+                            <Typography sx={{ color: "#374151" }}>
+                                <strong>Term:</strong> {activeSku.termInYears} Year(s)
+                            </Typography>
+                        )}
+                        {activeSku.sheetName && (
+                            <Typography sx={{ color: "#374151" }}>
+                                <strong>Region:</strong> {activeSku.sheetName}
+                            </Typography>
+                        )}
                         {activeSku["Country of Origin"] && (
                             <Typography sx={{ color: "#374151" }}>
-                                <strong>Country of Origin :</strong> {activeSku["Country of Origin"]}
+                                <strong>Country of Origin:</strong> {activeSku["Country of Origin"]}
                             </Typography>
                         )}
-
                     </DialogContent>
                     <DialogActions sx={{ padding: "25px" }}>
                         <Button fullWidth variant="contained" sx={{ bgcolor: "#004328", "&:hover": { bgcolor: "#003020" }, color: "#fff" }} onClick={() => { setIsModalOpen(false); showNotification("Details dialog closed", "info"); }}>Close</Button>

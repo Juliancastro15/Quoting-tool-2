@@ -1,6 +1,6 @@
 import * as React from "react";
 import { makeStyles } from "@fluentui/react-components";
-import Ericsson from "./views/shared/Ericsson";
+import Ericssons from "./views/shared/Ericsson";
 
 interface AppProps {
   title: string;
@@ -18,9 +18,7 @@ const App: React.FC<AppProps> = (_props: AppProps) => {
 
   return (
     <div className={styles.root}>
-
-      <Ericsson/>
-      
+      <Ericssons/>
     </div>
   );
 };
